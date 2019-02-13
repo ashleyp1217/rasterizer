@@ -7,12 +7,12 @@
     width: 1000px;
     margin: auto;
     text-align: left;
-    font-weight: 300;
-    font-family: 'Open Sans', sans-serif;
+    font-weight: 100;
+    font-family: 'Gil Sans', sans-serif;
     color: #121212;
   }
   h1, h2, h3, h4 {
-    font-family: 'Source Sans Pro', sans-serif;
+    font-family: 'DIN Alternate', sans-serif;
   }
 </style>
 <title>CS 184 Rasterizer</title>
@@ -23,74 +23,209 @@
 
 <body>
 
-<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2019</h1>
-<h1 align="middle">Project 1: Rasterizer</h1>
-<h2 align="middle">YOUR NAME, CS184-??</h2>
+<h1 align="left">CS 184: Computer Graphics and Imaging, Spring 2019</h1>
+<h1 align="left">Project 1: Rasterizer</h1>
+<h2 align="left">Ashley Park, CS184-aep</h2>
 
 <br><br>
 
 <div>
 
-<h2 align="middle">Overview</h2>
-<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+<h2 align="left" >Overview </h2>
+<p>This project was a fun introduction to the complex realm of computer graphics! In this project we mainly focused on applying linear algebra and other mathematical principles to manipulate triangles, pixels, colors, and textures. We started from learning to "draw" a single triangle and advanced to being able to map different textures onto a surface. We explored different ways to sample pixels as well as different ways to transform an object. Ultimately with the help of the skeleton code we were able to bring to life some very awesome graphics. It is amazing what you can create with just a few triangles! </p>
+<hr>
+<h2 align="left">Section I: Rasterization</h2>
 
-<h2 align="middle">Section I: Rasterization</h2>
+<h3 align="left">Part 1: Rasterizing single-color triangles</h3>
 
-<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+<p>  Given three (x,y) points and a 2D array containing the color value of each pixel, we can rasterize a triangle!</p>
 
-<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+<p>First I found the minimum and maximum x and y values in order to establish a bounding box. By iterating only through pixels in the bounding box, I can ignore irrelevant pixels. For each pixel within this bounding box, I checked if the center of the pixel was inside the triangle.</p>
 
-<div align="middle">
+<p>We can determine what side of a line a point is on using linear algebra. If the dot product between the point we are looking at and each of the three lines of the triangle are the same sign (all positive or all negative), then that point is inside the triangle. If the point is in the triangle, we can go ahead and fill it with the given color by calling samplebuffer[j][i].fill_pixel(color); </p>
+
+<div align="left">
+  <image src="images/part1.png" align="bottom" width="400px"/>
+  <figcaption align="top">  basic/test4.svg with the pixel inspector centered on an interesting part of the image</figcaption>
+</div>
+
+
+<h3 align="left">Part 2: Antialiasing triangles</h3>
+
+<p>Supersample is helpful because we are able to lessen the jaggies seen in part 1 and make our shapes look more cohesive. Supersampling takes samples from a pixel's subpixels and fills the entire pixel with a weighted average of subpixel colors. You can see in the screenshots of basic/test4.svg below that the corners and edges of the triangles are made of pixels with various shades of a color, but the overall look is more smooth and less rigid.</p>
+
+<div align="left">
   <table style="width=100%">
     <tr>
       <td>
-        <img src="images/image1.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/part2_1.png" align="middle" width="300px"/>
+        <figcaption align="middle">Sample rate = 1</figcaption>
       </td>
       <td>
-        <img src="images/image2.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-    </tr>
-    <br>
-    <tr>
-      <td>
-        <img src="images/image3.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/part2_4.png" align="middle" width="300px"/>
+        <figcaption align="middle">Sample rate = 4</figcaption>
       </td>
       <td>
-        <img src="images/image4.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/part2_16.png" align="middle" width="300px"/>
+        <figcaption align="middle">Sample rate = 16</figcaption>
       </td>
     </tr>
   </table>
 </div>
 
+<p>I implemented supersampling by creating two more for-loops within my original for-loops from part 1. Now instead of just iterating through all the pixels within the bounding box, we are iterating through each pixel AND each of its subpixels. From there another thing I had to add was an offset value so that I could look at the center of each subpixel, and then calculate the average of the subpixels' colors in drawrend.h get_pixel_color()</p>
 
-<h3 align="middle">Part 2: Antialiasing triangles</h3>
+<div align="middle">
+  <image src="images/part2_spec.jpg" align="bottom" width="200px"/>
+  <figcaption align="top">Sampling subpixels (image from the project spec)</figcaption>
+</div>
+<p></p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part2_code.png" align="middle" height="125px"/>
+        <figcaption align="middle">Iterate through subpixels and calculate offset value</figcaption>
+      </td>
+      <td>
+        <img src="images/part2_code2.png" align="middle" height="125px"/>
+        <figcaption align="middle">Find average color</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 
+<h3 align="left">Part 3: Transforms</h3>
 
+<p>For Part 3 we used matrix algebra to implement the three types of transforms: Scale, Rotate, and Translate.</p>
 
-<h3 align="middle">Part 3: Transforms</h3>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part3_ogrobot.png" align="middle" width="400px"/>
+        <figcaption align="middle">robot.svg</figcaption>
+      </td>
+      <td>
+        <img src="images/part3_myrobot.png" align="middle" width="400px"/>
+        <figcaption align="middle">my_robot.svg</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 
+<p>I wanted to make my robot do a "Pineapple jump." A pineapple jump is something my friends and I made up back when I was cheerleading. To do a pineapple jump, one must jump up with their hands above their heads, toes together, and knees bent. In order to make my robot look like its doing a pineapple jump, I had to mainly toggle around with the rotation and transformation of its arms and legs. I scaled its arms to be longer so that they could be closer to touching and also scaled its head to be bigger because I thought it looked cute like that. </p>
 
+<hr>
+<h2 align="left">Section II: Sampling</h2>
 
-<h2 align="middle">Section II: Sampling</h2>
+<h3 align="left">Part 4: Barycentric coordinates</h3>
+<p>Barycentric coordinates give us the location of a point relative to the three vertices of a triangle. If we have a triangle with vertices A, B, and C, then the variable alpha would be the proportional distance to A, beta the proportional distance to B, and gamma the proportional distance to C. Then, a point (x,y) inside the triangle can also be described as alpha*A + beta*B + gamma*C. By calculating these proportions we can use weighted sums to calculate the color of a pixel. </p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part4_colorwheel.png" align="middle" width="400px"/>
+        <figcaption align="middle">svg/basic/test7.svg</figcaption>
+      </td>
+      <td>
+        <img src="images/part4_TriangleColorWheel.png" align="middle" width="400px"/>
+        <figcaption align="middle">svg/basic/TriangleColorWheel.svg (Made by me)</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>On the right side is the result of a svg file I made called TriangleColorWheel.svg. I created a triangle with points (0,0), (0,200), and (200,200) with one red vertex, one green vertex, and one blue vertex. Using barycentric coordinates, each point inside the triangle has a specific amount of "redness," "blueness," and "greenness," depending on its distance from each vertex. As you can see the result these weighted sums of colors is a smoothly blended color triangle. </p>
 
-<h3 align="middle">Part 4: Barycentric coordinates</h3>
+<h3 align="left">Part 5: "Pixel sampling" for texture mapping</h3>
+<p>When we apply pixel sampling to texture mapping, we convert our (x,y) coordinates to barycentric coordinates and end up with (u,v) coordinates on our texture image. Now that we have a point on our texture image, we have to decide how  we want to retrieve the color. </p>
+<div align="middle">
+  <image src="images/part5_lecture.png" align="bottom" width="400px"/>
+  <figcaption align="top">Texture mapping (image from the Lecture 5 slides)</figcaption>
+</div>
+<p>For Nearest-pixel sampling, we simply round our point to the nearest pixel in the texture uv plane (a texel), and return that point's color. So for example in the photo above, the red dot being our point, we would return the color of texel <i>u<sub>11</sub></i>, the nearest texel. </p>
+<p>Bilinear sampling is a little more complicated in that we have to find the weighted average (linear interpolation) of the four nearest texels using fractional offsets <i>s</i> & <i>t</i>, like in the image above. </p>
 
+<p>Below is an example in which bilinear sampling clearly defeats nearest sampling. Like mentioned before, a lower sample rate creates more jaggies. In this example, the grid in the image has a lot of inconsistencies where there should be a continuous line. Bilinear sampling can be useful in this case because it creates a sort of blurred effect over the jaggies and makes it less noticeable. Therefore, the difference in quality between bilinear and nearest sampling would be the largest when jaggies and other distortions are the most obvious.</p>
 
-<h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part5_bilinear.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear sampling, sample rate 1</figcaption>
+      </td>
+      <td>
+        <img src="images/part5_nearest.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest pixel sampling, sample rate 1</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/part5_bilinear16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear sampling, sample rate 16</figcaption>
+      </td>
+      <td>
+        <img src="images/part5_nearest16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest pixel sampling, sample rate 16</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 
+<h3 align="left">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
 
-<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+<p>Level sampling is sampling from mipmap levels instead of just the original texture. We do this because using different levels allows us to get a more accurately sized texture, reducing distortion.</p>
 
+<p>First we find the barycentric coordinates of (x+1,y) and (x,y+1). We can then describe how far away the points (x+1,y) and (x,y+1) are on the texture plane and use that to determine the mipmap level. Since this calculation usually gives us an answer in between two integer levels, we have the option to round to the nearest level or use linear interpolation to find the weighted average (bilinear level sampling).</p>
 
+<p>Here is my custom png. I ran it with the texture from texmap/test5.svg with all four combinations of one of L_ZERO and L_NEAREST with one of P_NEAREST and P_LINEAR. </p>
 
-<h2 align="middle">Section III: Art Competition</h2>
+<div align="middle">
+  <image src="images/part6_Oski.png" align="bottom" width="250px"/>
+  <figcaption align="top">Original image (from blacksheeponline.com)</figcaption>
+</div>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/Part6_level0bilinear.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 0, bilinear sampling</figcaption>
+      </td>
+      <td>
+        <img src="images/Part6_level0nearest.png" align="middle" width="400px"/>
+        <figcaption align="middle">Level 0, nearest pixel sampling</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/Part6_nearestLevelBilinear.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest level, bilinear sampling</figcaption>
+      </td>
+      <td>
+        <img src="images/Part6_nearestLevelNearest.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest level, nearest pixel sampling</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p>While bilinear level sampling is the slowest, it is the best at antialiasing. Level 0 sampling is faster, but is not as good at antialiasing. Likewise, bilinear sampling is slower but better at antialiasing, and nearest pixel sampling is the opposite.</p>
+
+<hr>
+<h2 align="left">Section III: Art Competition</h2>
 <p>If you are not participating in the optional art competition, don't worry about this section!</p>
 
-<h3 align="middle">Part 7: Draw something interesting!</h3>
+<h3 align="left">Part 7: Draw something interesting!</h3>
 
 </body>
 </html>

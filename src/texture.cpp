@@ -5,31 +5,120 @@
 #include <algorithm>
 
 namespace CGL {
+    
+    Color lerp(float x, Color v0, Color v1){
+        return v0 + (x*(v1+(-1*v0)));
+    }
 
 Color Texture::sample(const SampleParams &sp) {
   // Parts 5 and 6: Fill this in.
   // Should return a color sampled based on the psm and lsm parameters given
-  return Color();
+    int level = 0;
+    if (sp.lsm == L_ZERO) {
+        if (sp.psm == P_NEAREST) return Texture::sample_nearest(sp.p_uv, level);
+        else if (sp.psm == P_LINEAR) return Texture::sample_bilinear(sp.p_uv, level);
+    }
+    else if (sp.lsm == L_NEAREST){
+        level = get_level(sp);
+        return Texture::sample_nearest(sp.p_uv, level);
+    }
+    else  { //(sp.lsm == L_LINEAR)
+        //sample trilinear
+        level = get_level(sp);
+        Color levelD = Texture::sample_bilinear(sp.p_uv, level);
+        Color levelD1 = Texture::sample_bilinear(sp.p_uv, level+1);
+        return lerp(sp.p_uv.x, levelD, levelD1);
+    }
+    
 }
+    
 
 float Texture::get_level(const SampleParams &sp) {
   // Optional helper function for Parts 5 and 6
-  return 0;
+    Vector2D diffx = (sp.p_dx_uv - sp.p_uv);
+    Vector2D diffy = (sp.p_dy_uv - sp.p_uv);
+    
+    float dudxsquared = pow(diffx.x * width,2);
+    float dvdxsquared = pow(diffx.y * width,2);
+    float dudysquared = pow(diffy.x * height,2);
+    float dvdysquared = pow(diffy.y * height,2);
+    
+    float L = max(sqrt(dudxsquared+dvdxsquared), sqrt(dudysquared+dvdysquared));
+  return log2(L);
 }
 
 // Returns the nearest sample given a particular level and set of uv coords
 Color Texture::sample_nearest(Vector2D uv, int level) {
   // Optional helper function for Parts 5 and 6
   // Feel free to ignore or create your own
-  return Color();
+    float x = uv.x * mipmap[level].width;  //uv.x is stored as a proportion. mltiply by width to get actual x & y values
+    float y = uv.y * mipmap[level].height;
+    
+    float floorx = floor(x); //left x
+    float ceilx = ceil(x); //right x
+    float floory = floor(y); //bottom y
+    float ceily = ceil(y); //top y
+    
+    if (0<= floorx && ceilx < width && 0<= floory && ceily < height){
+    // u00 = (floorx, floory), u01 = (floorx, ceily), u10 = (ceilx, floory), u11 = (ceilx, ceily)
+    // find the nearest point
+    if (abs(floorx-x) >= (abs(ceilx -x))) x=ceilx;
+    else x = floorx;
+    if (abs(floory-y) >= abs(ceily - y)) y = ceily;
+    else y = floory;
+    
+    float i = 3.0*((y*mipmap[level].width)+x); //find index for texels
+    
+    //texels is a 1D array with the r,g,b values for all the pixels in the texture image
+    // [r,g,b,r,g,b,r,g,b,...]
+    float r = mipmap[level].texels[i] / 255.0;  //the r,g,b values are multiples of 255
+    float g = mipmap[level].texels[i+1] / 255.0;
+    float b = mipmap[level].texels[i+2] / 255.0;
+    Color c = Color(r,g,b);
+        return c;
+    }
+    else {Color c = Color(1,1,1);
+        return c;}
 }
+    
+    
 
 // Returns the bilinear sample given a particular level and set of uv coords
 Color Texture::sample_bilinear(Vector2D uv, int level) {
   // Optional helper function for Parts 5 and 6
   // Feel free to ignore or create your own
-  return Color();
+    float x = uv.x * mipmap[level].width;
+    float y = uv.y * mipmap[level].height;
+    
+    float floorx = floor(x); //left x
+    float ceilx = ceil(x); //right x
+    float floory = floor(y); //bottom y
+    float ceily = ceil(y); //top y
+    if (0<= floorx && ceilx < width && 0<= floory && ceily < height){
+    float s = x - floorx;
+    float t = y - floory;
+    
+    int i00 = 3*((floory*mipmap[level].width)+floorx);
+    int i01 = 3*((ceily*mipmap[level].width)+floorx);
+    int i10 = 3*((floory*mipmap[level].width)+ceilx);
+    int i11 = 3*((ceily*mipmap[level].width)+ceilx);
+
+    Color c01 = Color(mipmap[level].texels[i01], mipmap[level].texels[i01+1], mipmap[level].texels[i01+2]);
+    Color c00 = Color(mipmap[level].texels[i00], mipmap[level].texels[i00+1], mipmap[level].texels[i00+2]);
+    Color c10 = Color(mipmap[level].texels[i10], mipmap[level].texels[i10+1], mipmap[level].texels[i10+2]);
+    Color c11 = Color(mipmap[level].texels[i11], mipmap[level].texels[i11+1], mipmap[level].texels[i11+2]);
+
+
+    Color u0 = lerp(s, c00, c10);
+    Color u1 = lerp(s, c01, c11);
+  return lerp(t,u0,u1)*(1.0/255.0);
+    }
+    else{
+        return Color(1,1,1);
+    }
 }
+    
+    
 
 
 

@@ -103,34 +103,43 @@ private:
       PixelColorStorage &p = sub_pixels[i][j];
       // Part 1: Overwrite PixelColorStorage p using Color c.
       //         Pay attention to different data types.
-        
-        p[0] = c.r * 255.0;
-        p[1] = c.g * 255.0;
-        p[2] = c.b * 255.0;
-        
+       // float r = c.r * 255;
+       // float b = c.b * 255;
+       // float g = c.g * 255;
+//        p[0] = c[0] * 255;
+//        p[1] = c[1] * 255;
+//        p[2] = c[2] * 255;
+        vector<unsigned char> temp {c[0] * 255.0, c[1] * 255.0, c[2] * 255.0};
+        p = temp;
       return;
     }
 
     void fill_pixel(Color c) {
-      for (int i = 0; i < samples_per_side; ++i)
-        for (int j = 0; j < samples_per_side; ++j)
+      for (int i = 0; i <= samples_per_side; ++i)
+        for (int j = 0; j <= samples_per_side; ++j)
           fill_color(i, j, c);
     }
 
     Color get_pixel_color() {
-     // return Color(sub_pixels[0][0].data());
-       //Part 2: Implement get_pixel_color() for supersampling.
-        
-        float total = samples_per_side * samples_per_side;
-        Color color = Color(0,0,0);
-        for (int i = 0; i < samples_per_side; i++){
-             for (int j = 0; j < samples_per_side; j++)
-             {
-                 Color c = Color(sub_pixels[i][j].data()) * (1.0/total);
-                 color += c;
-             }}
-        return color;
-        
+      return Color(sub_pixels[0][0].data());
+//      // Part 2: Implement get_pixel_color() for supersampling.
+//        float r = 0;
+//        float g = 0;
+//        float b = 0;
+//        for (int i = 0; i < samples_per_side; ++i){
+//            for (int j = 0; j < samples_per_side; ++j)
+//            {
+//                PixelColorStorage &p = sub_pixels[i][j];
+//                r = r + p[0];
+//                g = g + p[1];
+//                b = b + p[2];
+//            }
+//                }
+//        float total = samples_per_side * samples_per_side;
+//        r = 255*r/total;
+//        g = 255*g/total;
+//        b = 255*b/total;
+//        return Color( r, g, b );
     }
     
     void clear() {

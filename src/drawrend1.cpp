@@ -491,13 +491,15 @@ void DrawRend::rasterize_line( float x0, float y0,
   }
 }
 
-
+    float dotproduct(float x0, float y0, float x1, float y1){
+        return (x0*y0)+(x1*y1);
+    }
     
 // Rasterize a triangle.
 void DrawRend::rasterize_triangle( float x0, float y0,
                          float x1, float y1,
                          float x2, float y2,
-                                  Color color, Triangle *tri) {
+                         Color color, Triangle *tri) {
   // Part 1: Fill in this function with basic triangle rasterization code.
   //         Hint: Implement fill_color() function first so that you can see
   //         rasterized points and lines, then start rasterizing triangles.
@@ -513,66 +515,68 @@ void DrawRend::rasterize_triangle( float x0, float y0,
   // Part 5: Fill in the SampleParams struct and pass it to the tri->color function.
   // Part 6: Pass in correct barycentric differentials to tri->color for mipmapping.
 
-    float maxx = std::max(x0,max(x1,x2));
-    float minx = std::min(x0,min(x1,x2));
-    float maxy = std::max(y0,max(y1,y2));
-    float miny = std::min(y0,min(y1,y2));
+    if (y0>y1) {
+        swap(y0,y1);
+        swap(x0,x1);
+    }
+    if (y0>y2) {
+        swap(y0,y2);
+        swap(x0,x2);
+    }
+    if (y1>y2) {
+        swap(y1,y2);
+        swap(x1,x2);
+    }
+    //x0y0 is lowest y point, x2y2 is highest y point
+    int maxx = max(x0,max(x1,x2));
+    int minx = min(x0,min(x1,x2));
     
-    float dX0 = x1 - x0;
-    float dY0 = y1 - y0;
+    //vector<float> N02 = std::vector<float>((y0-y2), (x2-x0));
+    //vector<float> N01 = std::vector<float>((y0-y1),(x1-x0));
+    //vector<float> N12 = std::vector<float>((y1-y2),(x2-x1));
+
+    vector<float> N02;
+    N02.push_back(y0-y2);
+    N02.push_back(x2-x0);
+    vector<float> N01;
+    N01.push_back(y0-y1);
+    N01.push_back(x1-x0);
+    vector<float> N12;
+    N12.push_back(y1-y2);
+    N12.push_back(x2-x1);
     
-    float dX1 = x2 - x1;
-    float dY1 = y2 - y1;
-    
-    float dX2 = x0 - x2;
-    float dY2 = y0 - y2;
-    
-    for (int i = minx; i < maxx; i++){
-        for (int j = miny; j < maxy; j++){
-            for (int a = 0; a< sqrt(sample_rate); a++){
-                for (int b= 0; b< sqrt(sample_rate); b++){
-                    float offseta = ((a*sqrt(sample_rate))+1)/(2*sqrt(sample_rate));
-                    float offsetb = ((b*sqrt(sample_rate))+1)/(2*sqrt(sample_rate));
-                    float inside0 = -(i + offseta - x0)*dY0 + (j + offsetb - y0)*dX0;
-                    float inside1 = -(i + offseta - x1)*dY1 + (j + offsetb - y1)*dX1;
-                    float inside2 = -(i + offseta - x2)*dY2 + (j + offsetb - y2)*dX2;
-                    if ((inside0>=0 && inside1 >=0 && inside2 >=0) || (inside0<0 && inside1 < 0 && inside2 < 0)){
-                        //samplebuffer[j][i].fill_pixel(color); //part1
-                        if (tri!=NULL){
-                            float x = i + offseta;
-                            float y = j + offsetb;
-                            SampleParams sp = SampleParams();
-                            sp.psm = psm;
-                            sp.lsm = lsm;
-                            
-                            //barycentric coordinates of (x,y)
-                            float alpha = ((-(x-x1)*(y2-y1))+((y-y1)*(x2-x1)))/((-(x0-x1)*(y2-y1))+((y0-y1)*(x2-x1)));
-                            float beta = ((-(x-x2)*(y0-y2))+((y-y2)*(x0-x2)))/((-(x1-x2)*(y0-y2))+((y1-y2)*(x0-x2)));
-                            float gamma = 1 - alpha - beta;
-                            
-                            //barycentric coordinates of (x+1,y)
-                            float alphax = ((-((x+1)-x1)*(y2-y1))+((y-y1)*(x2-x1)))/((-(x0-x1)*(y2-y1))+((y0-y1)*(x2-x1)));
-                            float betax = ((-((x+1)-x2)*(y0-y2))+((y-y2)*(x0-x2)))/((-(x1-x2)*(y0-y2))+((y1-y2)*(x0-x2)));
-                            float gammax = 1 - alphax - betax;
-                            
-                            //barycentric coordinates of (x,y+1)
-                            float alphay = ((-(x-x1)*(y2-y1))+(((y+1)-y1)*(x2-x1)))/((-(x0-x1)*(y2-y1))+((y0-y1)*(x2-x1)));
-                            float betay = ((-(x-x2)*(y0-y2))+(((y+1)-y2)*(x0-x2)))/((-(x1-x2)*(y0-y2))+((y1-y2)*(x0-x2)));
-                            float gammay = 1 - alphay - betay;
-                            
-                            Vector3D p_bary = Vector3D(alpha, beta, gamma);
-                            Vector3D p_dx_bary = Vector3D(alphax, betax, gammax);
-                            Vector3D p_dy_bary = Vector3D(alphay, betay, gammay);
-                            Color c = tri->color(p_bary, p_dx_bary, p_dy_bary, sp);
-                            samplebuffer[j][i].fill_color(a, b, c);
-                        }
-                        else{
-                        samplebuffer[j][i].fill_color(a, b, color);
-                        }
-                    }
+    for (int i = floor(minx); i <= ceil(maxx); i++){
+        for (int j = floor(y0); j<= ceil(y2); j++){
+             //vector<float> point = std::vector<float>(i,j);
+            vector<float> point;
+            point.push_back(i + 0.5);
+            point.push_back(j + 0.5);
+            if (j+0.5<y1){
+               // if( dotproduct(point[0],point[1],N01[0], N01[1])>=0 &&  //dotproduct(point[0],point[1],N02[0], N02[1])>=0){
+                if (dotproduct(point.front(), point.back(), N01.front(), N01.back()) >= 0 && dotproduct(point.front(), point.back(), N02.front(), N02.back()) >=0){
+                samplebuffer[i][j].fill_pixel(color);
                 }
             }
+            else {
+                //if( dotproduct(point[0],point[1],N12[0], N12[1])>=0 &&  dotproduct(point[0],point[1],N02[0], N02[1])>=0){
+             //       samplebuffer[i][j].fill_pixel(color);
+               // }
+                
+                if (dotproduct(point.front(), point.back(), N12.front(), N12.back()) >= 0 && dotproduct(point.front(), point.back(), N02.front(), N02.back()) >=0){
+                    samplebuffer[i][j].fill_pixel(color);
+                }
+            }
+            
+           
+        //    for (int x = 0; x<= samplebuffer[i][j].samples_per_side; x++){
+          //      samplebuffer[i][j].sub_pixels.
+            //} PART2???
         }
     }
+    
 
-}}
+}
+
+
+
+}
